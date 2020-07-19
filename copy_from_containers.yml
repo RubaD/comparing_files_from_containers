@@ -1,0 +1,39 @@
+---
+ - hosts: all
+   tasks:
+
+   - name: Include vars
+     include_vars:
+       file: containers.yml
+
+   - name: get files secontext
+     shell:
+       cmd: docker exec "{{item['container']}}"  ls -lZ "{{item['file_path']}}"
+     register: files_context
+     with_items:
+     - "{{ containers }}"
+     when: "item['hostGroup'] in group_names"
+
+   - name: copy files from containers
+     shell: docker cp "{{item['container']}}":"{{item['file_path']}}" "{{location}}"
+     with_items:
+     - "{{ containers }}"
+     when: "item['hostGroup'] in group_names"
+
+   - name: copy files from remote nodes
+     fetch:
+       src: "{{location}}/{{item['file_name']}}"
+       dest: "{{location}}/{{item['container']}}/{{item['file_path']}}"
+       flat: yes
+     with_items:
+        - "{{ containers }}"
+     when: "item['hostGroup'] in group_names"
+     
+   - shell:
+       cmd: chcon "{{ item.0['stdout'].split()[4]}}" "{{location}}/{{item.1['container']}}/{{item.1['file_path']}}"
+     with_together:
+        - "{{files_context['results']}}" 
+        - "{{ containers }}"
+     when:  "item.1['hostGroup'] in group_names"
+     delegate_to: localhost 
+

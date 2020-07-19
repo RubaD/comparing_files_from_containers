@@ -1,0 +1,24 @@
+---
+ - hosts: localhost
+   tasks:
+
+   - name: Include vars
+     include_vars:
+       file: containers.yml
+   
+   - name: create changes list
+     set_fact:
+       changes_list: []
+   - name: create content changes list
+     set_fact:
+       content_changes: []
+
+   - include: compare_files.yml
+     with_items:
+      - "{{containers}}"
+     delegate_to: localhost
+
+   - debug:
+      var: changes_list
+   - debug:
+      var: content_changes
