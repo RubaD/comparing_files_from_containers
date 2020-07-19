@@ -9,8 +9,8 @@
      register: first_file
 
    - template:
-      src: "{{sec_dir}}/{{ item.file_path }}"
-      dest: "{{sec_dir}}/{{ item.file_path }}"
+      src: "{{sec_dir}}/{{item['container']}}/{{ item.file_path }}"
+      dest: "{{sec_dir}}/{{item['container']}}/{{ item.file_path }}"
      diff: yes
      check_mode: yes
      register: sec_file
