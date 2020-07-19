@@ -1,6 +1,0 @@
----
-
-
- containers:
-   - { container: "condescending_gates" , file_name: "ff.txt" , file_mode: " " , file_path: "/files/ff.txt" , hostGroup: 'Compute'  }
-   - { container: "frosty_hamilton" , file_name: "file.txt" , file_mode: " " , file_path: "/files/file1.txt" , hostGroup: 'Control' }
