@@ -29,6 +29,7 @@
         - "{{ containers }}"
      when: "item['hostGroup'] in group_names"
      
+     name: set selinux as the original file
    - shell:
        cmd: chcon "{{ item.0['stdout'].split()[4]}}" "{{location}}/{{item.1['container']}}/{{item.1['file_path']}}"
      with_together:
