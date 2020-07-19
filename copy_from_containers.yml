@@ -6,35 +6,54 @@
      include_vars:
        file: containers.yml
 
+   - name: Get infos on container
+     docker_container_info:
+      name: "{{item['container']}}"
+     register: result
+     with_items:
+       - "{{ containers }}"
+     when: item.hostGroup in group_names 
+
    - name: get files secontext
      shell:
-       cmd: docker exec "{{item['container']}}"  ls -lZ "{{item['file_path']}}"
+       cmd: docker exec "{{item.0['container']}}"  ls -lZ "{{item.0['file_path']}}"
      register: files_context
-     with_items:
-     - "{{ containers }}"
-     when: "item['hostGroup'] in group_names"
+     with_together:
+       - "{{ containers }}"
+       - "{{ result.results }}"
+     when: item.0.hostGroup in group_names and  item.1.container.State.Status == 'running'
 
    - name: copy files from containers
-     shell: docker cp "{{item['container']}}":"{{item['file_path']}}" "{{location}}"
-     with_items:
-     - "{{ containers }}"
-     when: "item['hostGroup'] in group_names"
+     shell: docker cp "{{item.0['container']}}":"{{item.0['file_path']}}" "{{location}}"
+     with_together:
+       - "{{ containers }}"
+       - "{{ result.results }}"
+
+     when: item.0.hostGroup in group_names and  item.1.container.State.Status == "running"
 
    - name: copy files from remote nodes
      fetch:
-       src: "{{location}}/{{item['file_name']}}"
-       dest: "{{location}}/{{item['container']}}/{{item['file_path']}}"
+       src: "{{location}}/{{item.0['file_name']}}"
+       dest: "{{location}}/{{item.0['container']}}/{{item.0['file_path']}}"
        flat: yes
-     with_items:
-        - "{{ containers }}"
-     when: "item['hostGroup'] in group_names"
+     with_together:
+       - "{{ containers }}"
+       - "{{ result.results }}"
+     when: item.0.hostGroup in group_names and  item.1.container.State.Status == "running"
      
-     name: set selinux as the original file
    - shell:
        cmd: chcon "{{ item.0['stdout'].split()[4]}}" "{{location}}/{{item.1['container']}}/{{item.1['file_path']}}"
      with_together:
         - "{{files_context['results']}}" 
         - "{{ containers }}"
-     when:  "item.1['hostGroup'] in group_names"
+        - "{{ result.results }}"
+     when:  item.1.hostGroup in group_names and  item.2.container.State.Status == "running"
      delegate_to: localhost 
+
+   - debug:
+       msg: " {{item.0['container']}} is not running "
+     with_together:
+       - "{{ containers }}"
+       - "{{ result.results }}"
+     when:   item.0.hostGroup in group_names and  item.1.container.State.Status != "running" 
 
